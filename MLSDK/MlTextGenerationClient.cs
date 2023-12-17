@@ -10,6 +10,11 @@ namespace MlSDK
 
         private readonly Dictionary<string, string> _queryBuffer = new();
         private readonly HttpClient _client;
+
+        private const string ResultKey = "result";
+
+        private string GenerateUrl => $"{_url}/api/generate";
+        private string ExecuteUrl => $"{_url}/api/execute";
         
         public MlTextGenerationClient(string url, AuthData authData)
         {
@@ -18,6 +23,32 @@ namespace MlSDK
             _client = new HttpClient();
         }
 
+        public async Task<History> GetHistoryRequest(string characterName)
+        {
+            _queryBuffer.Clear();
+            
+            InsertAuthData();
+            InsertCommand("get_history", characterName);
+
+            var result = await SendRequestInternal(_queryBuffer, ExecuteUrl);
+
+            if (!result.TryGetValue(ResultKey, out string? rawResult) || string.IsNullOrEmpty(rawResult))
+            {
+                Console.WriteLine($"Internal request error");
+                return new History();
+            }
+
+            var history = JsonConvert.DeserializeObject<History>(rawResult);
+
+            if (history == null)
+            {
+                Console.WriteLine($"Internal request error");
+                return new History();
+            }
+
+            return history;
+        }
+        
         public Task<GenerationResult> SendGenerationRequest(string promt, bool useHistory = false)
         {
             _queryBuffer.Clear();
@@ -35,7 +66,7 @@ namespace MlSDK
 
             using (HttpContent content = new StringContent(json))
             {
-                var response = await _client.PostAsync(_url, content);
+                var response = await _client.PostAsync(GenerateUrl, content);
 
                 if (!response.IsSuccessStatusCode)
                     return new GenerationResult(false, string.Empty);
@@ -45,6 +76,29 @@ namespace MlSDK
             }
         }
 
+        private async Task<Dictionary<string, string?>> SendRequestInternal(Dictionary<string, string> query, string url)
+        {
+            var json = JsonConvert.SerializeObject(query);
+
+            using (HttpContent content = new StringContent(json))
+            {
+                var response = await _client.PostAsync(url, content);
+
+                if (!response.IsSuccessStatusCode)
+                    return new Dictionary<string, string?>();
+
+                var responseResult = await response.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<Dictionary<string, string>>(responseResult) ??
+                       new Dictionary<string, string?>();
+            }
+        }
+
+        private void InsertCommand(string command, string parameter)
+        {
+            _queryBuffer.Add("command", command);
+            _queryBuffer.Add("parameter", parameter);
+        }
+        
         private void InsertPromt(string promt)
         {
             _queryBuffer.Add("promt", promt);
