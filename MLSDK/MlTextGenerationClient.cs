@@ -15,6 +15,7 @@ namespace MlSDK
 
         private string GenerateUrl => $"{_url}/api/generate";
         private string ExecuteUrl => $"{_url}/api/execute";
+        private string RegenerateUrl => $"{_url}/api/regenerate";
         
         public MlTextGenerationClient(string url, AuthData authData)
         {
@@ -49,7 +50,7 @@ namespace MlSDK
             return history;
         }
         
-        public Task<GenerationResult> SendGenerationRequest(string promt, bool useHistory = false)
+        public async Task<GenerationResult> SendGenerationRequest(string promt, bool useHistory = false)
         {
             _queryBuffer.Clear();
             
@@ -57,16 +58,47 @@ namespace MlSDK
             InsertPromt(promt);
             InsertUseHistory(useHistory);
 
-            return SendGenerationRequestInternal(_queryBuffer);
+            return await SendGenerationRequestInternal(_queryBuffer, GenerateUrl);
+        }
+        
+        public async Task<GenerationResult> SendGenerationRequest(string promt, string characterName, bool useHistory = false)
+        {
+            _queryBuffer.Clear();
+            
+            InsertAuthData();
+            InsertPromt(promt);
+            InsertUseHistory(useHistory);
+            InsertCharacterName(characterName);
+
+            return await SendGenerationRequestInternal(_queryBuffer, GenerateUrl);
         }
 
-        private async Task<GenerationResult> SendGenerationRequestInternal(Dictionary<string, string> query)
+        public async Task<GenerationResult> SendRegenerationRequest(string characterName)
+        {
+            var history = await GetHistoryRequest(characterName);
+
+            if (history.Messages.Count <= 0)
+            {
+                string message = $"Character {characterName} does not contains any history";
+                Console.WriteLine(message);
+                return new GenerationResult(false, message);
+            }
+            
+            _queryBuffer.Clear();
+            InsertAuthData();
+            InsertCharacterHistory(history);
+            InsertCharacterName(characterName);
+
+            return await SendGenerationRequestInternal(_queryBuffer, RegenerateUrl);
+        }
+
+        private async Task<GenerationResult> SendGenerationRequestInternal(Dictionary<string, string> query, string url)
         {
             var json = JsonConvert.SerializeObject(query);
 
             using (HttpContent content = new StringContent(json))
             {
-                var response = await _client.PostAsync(GenerateUrl, content);
+                var response = await _client.PostAsync(url, content);
 
                 if (!response.IsSuccessStatusCode)
                     return new GenerationResult(false, string.Empty);
@@ -109,6 +141,16 @@ namespace MlSDK
             _queryBuffer.Add("use_history", useHistory.ToString());
         }
 
+        private void InsertCharacterHistory(History history)
+        {
+            _queryBuffer.Add("history", JsonConvert.SerializeObject(history));
+        }
+
+        private void InsertCharacterName(string characterName)
+        {
+            _queryBuffer.Add("character", characterName);
+        }
+        
         private void InsertAuthData()
         {
             _queryBuffer.Add("username", _authData.Username);
