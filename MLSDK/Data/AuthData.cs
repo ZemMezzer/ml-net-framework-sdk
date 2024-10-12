@@ -1,13 +1,15 @@
-﻿namespace MlSDK.Data;
-
-public readonly struct AuthData
+﻿namespace MlSDK.Data
 {
-    public readonly string Username;
-    public readonly string Password;
 
-    public AuthData(string username, string password)
+    public readonly struct AuthData
     {
-        Username = username;
-        Password = password;
+        public readonly string Username;
+        public readonly string Password;
+
+        public AuthData(string username, string password)
+        {
+            Username = username;
+            Password = password;
+        }
     }
 }
