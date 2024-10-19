@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Threading.Tasks;
-using MlSDK.Data;
+﻿using MlSDK.Data;
 using MLSDK.Data;
 using Newtonsoft.Json;
 
@@ -13,7 +9,7 @@ namespace MlSDK
         private readonly string _url;
         private readonly AuthData _authData;
 
-        private readonly Dictionary<string, string> _queryBuffer = new Dictionary<string, string>();
+        private readonly Dictionary<string, string> _queryBuffer = new();
         private readonly HttpClient _client;
 
         private const string ResultKey = "result";
@@ -24,6 +20,8 @@ namespace MlSDK
 
         private readonly string _character;
         
+        public History CurrentHistory { get; private set; }
+        
         public MlTextGenerationClient(string url, string character, AuthData authData)
         {
             _url = url;
@@ -32,49 +30,31 @@ namespace MlSDK
             _client = new HttpClient();
         }
 
-        public async Task<History> GetHistoryRequest()
-        {
-            _queryBuffer.Clear();
-            
-            InsertAuthData();
-            InsertCommand("get_history", _character);
-
-            var result = await SendRequestInternal(_queryBuffer, ExecuteUrl);
-
-            if (!result.TryGetValue(ResultKey, out string? rawResult) || string.IsNullOrEmpty(rawResult))
-            {
-                Console.WriteLine($"Internal request error");
-                return new History();
-            }
-
-            var history = JsonConvert.DeserializeObject<History>(rawResult);
-
-            if (history == null)
-            {
-                Console.WriteLine($"Internal request error");
-                return new History();
-            }
-
-            return history;
-        }
+        public void SetHistory(History history) => CurrentHistory = history;
         
         public async Task<GenerationResult> SendGenerationRequest(string promt, bool useHistory = false)
         {
+            if (useHistory && CurrentHistory == null)
+            {
+                Console.WriteLine($"You don't set any history");
+            }
+            
             _queryBuffer.Clear();
             
             InsertCharacterId(_character);
             InsertAuthData();
             InsertPromt(promt);
-            InsertUseHistory(useHistory);
+            InsertUseHistory(useHistory && CurrentHistory != null);
+            
+            if(useHistory && CurrentHistory!=null)
+                InsertCharacterHistory(CurrentHistory);
 
             return await SendGenerationRequestInternal(_queryBuffer, GenerateUrl);
         }
 
         public async Task<GenerationResult> SendRegenerationRequest()
         {
-            var history = await GetHistoryRequest();
-
-            if (history.Messages.Count <= 0)
+            if (CurrentHistory == null || CurrentHistory.Messages.Count <= 0)
             {
                 string message = $"Character does not contains any history";
                 Console.WriteLine(message);
@@ -84,6 +64,7 @@ namespace MlSDK
             _queryBuffer.Clear();
             InsertCharacterId(_character);
             InsertAuthData();
+            InsertCharacterHistory(CurrentHistory);
             InsertUseHistory(true);
 
             return await SendGenerationRequestInternal(_queryBuffer, RegenerateUrl);

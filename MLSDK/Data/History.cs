@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 
 namespace MLSDK.Data
 {
@@ -57,6 +55,52 @@ namespace MLSDK.Data
         public void RemoveLast()
         {
             _messages.RemoveAt(_messages.Count - 1);
+        }
+        
+        private void RemoveLastRoleMessage(string role)
+        {
+            for (int i = _messages.Count - 1; i >= 0; i--)
+            {
+                if (_messages[i].Role == role)
+                {
+                    _messages.RemoveAt(i);
+                    return;
+                }
+            }
+        }
+
+        public void RemoveLastRequest()
+        {
+            if (_messages.Count <= 2)
+            {
+                throw new Exception($"History must contains at least 2 messages");
+                return;
+            }
+            
+            RemoveLastRoleMessage(AI_ROLE);
+            RemoveLastRoleMessage(USER_ROLE);
+        }
+
+        public void RemoveRequestAtIndex(int promtIndex)
+        {
+            if (_messages.Count <= 0)
+            {
+                throw new Exception("History is empty!");
+            }
+
+            if (_messages.Count <= promtIndex || promtIndex<0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(promtIndex), $"Promt index {promtIndex} is out of range");
+            }
+
+            int characterMessageId = promtIndex + 1;
+
+            if (_messages.Count > characterMessageId)
+            {
+                _messages.RemoveAt(characterMessageId);
+            }
+            
+            _messages.RemoveAt(promtIndex);
         }
 
         public void Clear(string innerMessage)

@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using MLSDK.Data;
+﻿using MLSDK.Data;
 using Newtonsoft.Json;
 
 namespace MlSDK.Data
@@ -18,7 +17,7 @@ namespace MlSDK.Data
             if (isValidResponse)
             {
                 _result = JsonConvert.DeserializeObject<Dictionary<string, string>>(result) ?? new Dictionary<string, string>();
-                IsGenerationSucceed = !_result.ContainsKey(ErrorMessage);
+                IsGenerationSucceed = !_result.ContainsKey(ErrorMessage) && _result.TryGetValue(TextGenerationResultKey, out _);
             }
             else
             {
