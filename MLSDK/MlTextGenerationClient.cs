@@ -17,16 +17,15 @@ namespace MlSDK
         private string GenerateUrl => $"{_url}/api/generate";
         private string ExecuteUrl => $"{_url}/api/execute";
         private string RegenerateUrl => $"{_url}/api/regenerate";
-
-        private readonly string _character;
         
         public History CurrentHistory { get; private set; }
+        public CharacterData CharacterData { get; private set; }
         
-        public MlTextGenerationClient(string url, string character, AuthData authData)
+        public MlTextGenerationClient(string url, CharacterData characterData, AuthData authData)
         {
             _url = url;
             _authData = authData;
-            _character = character;
+            CharacterData = characterData;
             _client = new HttpClient();
         }
 
@@ -41,7 +40,7 @@ namespace MlSDK
             
             _queryBuffer.Clear();
             
-            InsertCharacterId(_character);
+            InsertCharacter(CharacterData);
             InsertAuthData();
             InsertPromt(promt);
             InsertUseHistory(useHistory && CurrentHistory != null);
@@ -62,7 +61,7 @@ namespace MlSDK
             }
             
             _queryBuffer.Clear();
-            InsertCharacterId(_character);
+            InsertCharacter(CharacterData);
             InsertAuthData();
             InsertCharacterHistory(CurrentHistory);
             InsertUseHistory(true);
@@ -126,9 +125,9 @@ namespace MlSDK
             _queryBuffer.Add("use_history", useHistory.ToString());
         }
 
-        private void InsertCharacterId(string characterId)
+        private void InsertCharacter(CharacterData characterData)
         {
-            _queryBuffer.Add("character", characterId);
+            _queryBuffer.Add("character_data", JsonConvert.SerializeObject(characterData));
         }
         
         private void InsertCharacterHistory(History history)

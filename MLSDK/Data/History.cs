@@ -56,51 +56,15 @@ namespace MLSDK.Data
         {
             _messages.RemoveAt(_messages.Count - 1);
         }
-        
-        private void RemoveLastRoleMessage(string role)
-        {
-            for (int i = _messages.Count - 1; i >= 0; i--)
-            {
-                if (_messages[i].Role == role)
-                {
-                    _messages.RemoveAt(i);
-                    return;
-                }
-            }
-        }
 
-        public void RemoveLastRequest()
+        public void RemoveAt(int index)
         {
-            if (_messages.Count <= 2)
+            if (index >= _messages.Count || index < 0)
             {
-                throw new Exception($"History must contains at least 2 messages");
-                return;
+                throw new ArgumentOutOfRangeException();
             }
             
-            RemoveLastRoleMessage(AI_ROLE);
-            RemoveLastRoleMessage(USER_ROLE);
-        }
-
-        public void RemoveRequestAtIndex(int promtIndex)
-        {
-            if (_messages.Count <= 0)
-            {
-                throw new Exception("History is empty!");
-            }
-
-            if (_messages.Count <= promtIndex || promtIndex<0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(promtIndex), $"Promt index {promtIndex} is out of range");
-            }
-
-            int characterMessageId = promtIndex + 1;
-
-            if (_messages.Count > characterMessageId)
-            {
-                _messages.RemoveAt(characterMessageId);
-            }
-            
-            _messages.RemoveAt(promtIndex);
+            _messages.RemoveAt(index);
         }
 
         public void Clear(string innerMessage)
