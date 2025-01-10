@@ -1,144 +1,132 @@
-﻿using MlSDK.Data;
+﻿using System.Text;
+using MlSDK.Data;
 using MLSDK.Data;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace MlSDK
 {
     public class MlTextGenerationClient
     {
         private readonly string _url;
-        private readonly AuthData _authData;
-
-        private readonly Dictionary<string, string> _queryBuffer = new();
         private readonly HttpClient _client;
-
-        private const string ResultKey = "result";
-
-        private string GenerateUrl => $"{_url}/api/generate";
-        private string ExecuteUrl => $"{_url}/api/execute";
-        private string RegenerateUrl => $"{_url}/api/regenerate";
-        
-        public History CurrentHistory { get; private set; }
+        public History CurrentHistory { get; set; }
         public CharacterData CharacterData { get; private set; }
+
+        private Dictionary<string, object> _generationDataCache = new();
+
+        private const string MessagesKey = "messages";
         
-        public MlTextGenerationClient(string url, CharacterData characterData, AuthData authData)
+        public MlTextGenerationClient(string url, CharacterData characterData, GenerationConfig generationConfig)
         {
             _url = url;
-            _authData = authData;
             CharacterData = characterData;
             _client = new HttpClient();
+
+            foreach (var parameter in generationConfig.GenerationParameters)
+            {
+                _generationDataCache[parameter.Key] = parameter.Value;
+            }
+
+            _generationDataCache["mode"] = "chat";
+            _generationDataCache["context"] = characterData.Context;
         }
 
-        public void SetHistory(History history) => CurrentHistory = history;
-        
-        public async Task<GenerationResult> SendGenerationRequest(string promt, bool useHistory = false)
+        public async Task<GenerationResult> SendGenerationRequest(string promt, bool useHistory = false,
+            bool updateHistory = true)
         {
             if (useHistory && CurrentHistory == null)
             {
-                Console.WriteLine($"You don't set any history");
+                return new GenerationResult(false, string.Empty, "Null history");
             }
-            
-            _queryBuffer.Clear();
-            
-            InsertCharacter(CharacterData);
-            InsertAuthData();
-            InsertPromt(promt);
-            InsertUseHistory(useHistory && CurrentHistory != null);
-            
-            if(useHistory && CurrentHistory!=null)
-                InsertCharacterHistory(CurrentHistory);
 
-            return await SendGenerationRequestInternal(_queryBuffer, GenerateUrl);
+            var history = useHistory ? CurrentHistory : new History(string.Empty, CharacterData.Context);
+            return await SendGenerationRequestInternal(promt, history, updateHistory && useHistory);
         }
 
-        public async Task<GenerationResult> SendRegenerationRequest()
+        public async Task<GenerationResult> SendRegenerationRequest(bool updateHistory = true)
         {
             if (CurrentHistory == null || CurrentHistory.Messages.Count <= 0)
             {
-                string message = $"Character does not contains any history";
-                Console.WriteLine(message);
-                return new GenerationResult(false, message);
+                return new GenerationResult(false, string.Empty, "History can't be null or empty on regenerate request, use generate request instead");
             }
+
+            var lastMessage = CurrentHistory.GetLastMessage();
             
-            _queryBuffer.Clear();
-            InsertCharacter(CharacterData);
-            InsertAuthData();
-            InsertCharacterHistory(CurrentHistory);
-            InsertUseHistory(true);
+            if (!lastMessage.HasValue || lastMessage.Value.IsUserMessage)
+            {
+                return new GenerationResult(false, string.Empty,
+                    "Regenerate requests can only be send on model message");
+            }
 
-            return await SendGenerationRequestInternal(_queryBuffer, RegenerateUrl);
+            var history = CurrentHistory.GetCopy();
+            
+            var promt = history.GetLastPromt().Content;
+            
+            history.RemoveLastCharacterMessage();
+            
+            if(!string.IsNullOrEmpty(promt))
+                history.RemoveLastUserMessage();
+
+            return await SendGenerationRequestInternal(promt, history, updateHistory);
+        }
+        
+        private async Task<GenerationResult> SendGenerationRequestInternal(string promt, History history, bool updateHistory)
+        {
+            if (string.IsNullOrEmpty(promt))
+            {
+                return new GenerationResult(false, string.Empty, "Empty promt");
+            }
+
+            var requestHistory = history.GetCopy();
+            requestHistory.AddPromt(promt);
+
+            _generationDataCache[MessagesKey] = requestHistory.Messages;
+
+            var result = await SendApiRequest(JsonConvert.SerializeObject(_generationDataCache));
+
+            if (!result.IsGenerationSucceed)
+                return result;
+
+            if (!updateHistory) 
+                return result;
+            
+            requestHistory.SetModelMessage(result.ResultMessage);
+            CurrentHistory = requestHistory;
+
+            return result;
         }
 
-        private async Task<GenerationResult> SendGenerationRequestInternal(Dictionary<string, string> query, string url)
+        private async Task<GenerationResult> SendApiRequest(string json)
         {
-            var json = JsonConvert.SerializeObject(query);
-
-            try
+            using (HttpContent content = new StringContent(json, Encoding.UTF8, "application/json"))
             {
-                using (HttpContent content = new StringContent(json))
-                {
-                    var response = await _client.PostAsync(url, content);
-
-                    if (!response.IsSuccessStatusCode)
-                        return new GenerationResult(false, $"{response.StatusCode} :{response.ReasonPhrase}");
-
-                    var responseResult = await response.Content.ReadAsStringAsync();
-                    return new GenerationResult(true, responseResult);
-                }
-            }
-            catch (Exception e)
-            {
-                return new GenerationResult(false, e.Message);
-            }
-        }
-
-        private async Task<Dictionary<string, string?>> SendRequestInternal(Dictionary<string, string> query, string url)
-        {
-            var json = JsonConvert.SerializeObject(query);
-
-            using (HttpContent content = new StringContent(json))
-            {
-                var response = await _client.PostAsync(url, content);
+                var response = await _client.PostAsync(_url, content);
 
                 if (!response.IsSuccessStatusCode)
-                    return new Dictionary<string, string?>();
+                {
+                    return new GenerationResult(false, string.Empty, response.ReasonPhrase);
+                }
 
-                var responseResult = await response.Content.ReadAsStringAsync();
-                return JsonConvert.DeserializeObject<Dictionary<string, string>>(responseResult) ??
-                       new Dictionary<string, string?>();
+                var jsonTask = response.Content.ReadAsStringAsync();
+                JObject result = JObject.Parse(jsonTask.Result);
+
+                response.Dispose();
+
+                var choices = result["choices"];
+                var message = choices[0]["message"];
+
+                var parsedResult = message["content"].ToString();
+
+                var formattedResult = System.Net.WebUtility.HtmlDecode(parsedResult);
+
+                if (string.IsNullOrEmpty(formattedResult))
+                {
+                    return new GenerationResult(false, string.Empty, "Empty response");
+                }
+
+                return new GenerationResult(true, formattedResult, string.Empty);
             }
-        }
-
-        private void InsertCommand(string command, string parameter)
-        {
-            _queryBuffer.Add("command", command);
-            _queryBuffer.Add("parameter", parameter);
-        }
-        
-        private void InsertPromt(string promt)
-        {
-            _queryBuffer.Add("promt", promt);
-        }
-
-        private void InsertUseHistory(bool useHistory)
-        {
-            _queryBuffer.Add("use_history", useHistory.ToString());
-        }
-
-        private void InsertCharacter(CharacterData characterData)
-        {
-            _queryBuffer.Add("character_data", JsonConvert.SerializeObject(characterData));
-        }
-        
-        private void InsertCharacterHistory(History history)
-        {
-            _queryBuffer.Add("history", JsonConvert.SerializeObject(history));
-        }
-        
-        private void InsertAuthData()
-        {
-            _queryBuffer.Add("username", _authData.Username);
-            _queryBuffer.Add("password", _authData.Password);
         }
     }
 }

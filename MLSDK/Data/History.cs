@@ -12,6 +12,8 @@ namespace MLSDK.Data
             [JsonProperty("role")] public string Role;
             [JsonProperty("content")] public string Content;
 
+            public bool IsUserMessage => Role == USER_ROLE;
+            
             public HistoryMessage(string role, string content)
             {
                 Role = role;
@@ -22,7 +24,7 @@ namespace MLSDK.Data
         private const string SYSTEM_ROLE = "system";
         private const string AI_ROLE = "assistant";
         private const string USER_ROLE = "user";
-
+        
         [JsonProperty("messages")] private List<HistoryMessage> _messages;
 
         public IReadOnlyList<HistoryMessage> Messages => _messages;
@@ -67,10 +69,15 @@ namespace MLSDK.Data
             _messages.RemoveAt(index);
         }
 
-        public void Clear(string innerMessage)
+        public void Clear(string innerMessage = "", string context = "")
         {
             _messages.Clear();
 
+            if (!string.IsNullOrEmpty(context))
+            {
+                _messages.Add(new HistoryMessage(SYSTEM_ROLE, context));
+            }
+            
             if (!string.IsNullOrEmpty(innerMessage))
             {
                 _messages.Add(new HistoryMessage(AI_ROLE, innerMessage));
@@ -86,6 +93,49 @@ namespace MLSDK.Data
             }
 
             return default;
+        }
+        
+        public HistoryMessage? GetLastMessage()
+        {
+            if (_messages.Count > 0)
+                return _messages[^1];
+
+            return default;
+        }
+        
+        private void RemoveLastRoleMessage(string role)
+        {
+            for (int i = _messages.Count - 1; i >= 0; i--)
+            {
+                if (_messages[i].Role == role)
+                {
+                    _messages.RemoveAt(i);
+                    return;
+                }
+            }
+        }
+
+        public void RemoveLastCharacterMessage() => RemoveLastRoleMessage(AI_ROLE);
+        public void RemoveLastUserMessage() => RemoveLastRoleMessage(USER_ROLE);
+
+        public History GetCopy()
+        {
+            var history = new History();
+
+            foreach (var message in _messages)
+            {
+                history._messages.Add(message);
+            }
+
+            return history;
+        }
+
+        public bool IsEmpty(bool ignoreContext = true)
+        {
+            if (_messages.Count <= 0)
+                return true;
+
+            return _messages.Count <= 1 && _messages[0].Role == SYSTEM_ROLE && ignoreContext;
         }
     }
 }
