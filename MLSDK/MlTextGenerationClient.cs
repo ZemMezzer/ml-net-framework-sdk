@@ -32,7 +32,7 @@ namespace MlSDK
             _generationDataCache["context"] = characterData.Context;
         }
 
-        public async Task<GenerationResult> SendGenerationRequest(string promt, bool useHistory = false,
+        public async Task<GenerationResult> SendGenerationRequest(string promt = "", bool useHistory = false,
             bool updateHistory = true)
         {
             if (useHistory && CurrentHistory == null)
@@ -60,8 +60,8 @@ namespace MlSDK
             }
 
             var history = CurrentHistory.GetCopy();
-            
-            var promt = history.GetLastPromt().Content;
+
+            var promt = CurrentHistory.IsLastMessageResponseOnPromt() ? history.GetLastPromt().Content : string.Empty;
             
             history.RemoveLastCharacterMessage();
             
@@ -73,13 +73,10 @@ namespace MlSDK
         
         private async Task<GenerationResult> SendGenerationRequestInternal(string promt, History history, bool updateHistory)
         {
-            if (string.IsNullOrEmpty(promt))
-            {
-                return new GenerationResult(false, string.Empty, "Empty promt");
-            }
-
             var requestHistory = history.GetCopy();
-            requestHistory.AddPromt(promt);
+            
+            if(!string.IsNullOrEmpty(promt))
+                requestHistory.AddPromt(promt);
 
             _generationDataCache[MessagesKey] = requestHistory.Messages;
 

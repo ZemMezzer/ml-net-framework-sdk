@@ -84,6 +84,14 @@ namespace MLSDK.Data
             }
         }
 
+        public bool IsLastMessageResponseOnPromt()
+        {
+            if (_messages.Count <= 1)
+                return false;
+
+            return _messages[^1].Role == AI_ROLE && _messages[^2].IsUserMessage;
+        }
+        
         public HistoryMessage GetLastPromt()
         {
             for (int i = _messages.Count - 1; i >= 0; i--)
