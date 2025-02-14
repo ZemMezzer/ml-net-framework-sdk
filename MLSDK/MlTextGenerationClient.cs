@@ -32,6 +32,16 @@ namespace MlSDK
             _generationDataCache["context"] = characterData.Context;
         }
 
+        public void SetGrammar(string grammar)
+        {
+            _generationDataCache["grammar_string"] = grammar;
+        }
+
+        public void RemoveGrammar()
+        {
+            _generationDataCache.Remove("grammar_string");
+        }
+        
         public async Task<GenerationResult> SendGenerationRequest(string promt = "", bool useHistory = false,
             bool updateHistory = true)
         {
