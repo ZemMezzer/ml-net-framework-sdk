@@ -29,12 +29,29 @@ namespace MlSDK
             }
 
             _generationDataCache["mode"] = "chat";
-            _generationDataCache["context"] = characterData.Context;
         }
 
+        public void SetContext(string context)
+        {
+            _generationDataCache["context"] = context;
+        }
+        
+        /// <summary>
+        /// Use for structured output on llama.cpp
+        /// </summary>
+        /// <param name="grammar">GBNF grammar</param>
         public void SetGrammar(string grammar)
         {
             _generationDataCache["grammar_string"] = grammar;
+        }
+
+        /// <summary>
+        /// Use for structured output on OpenAI API
+        /// </summary>
+        /// <param name="format">Json schema</param>
+        public void SetResponseFormat(string format)
+        {
+            _generationDataCache["response_format"] = format;
         }
 
         public void RemoveGrammar()
@@ -50,7 +67,7 @@ namespace MlSDK
                 return new GenerationResult(false, string.Empty, "Null history");
             }
 
-            var history = useHistory ? CurrentHistory : new History(string.Empty, CharacterData.Context);
+            var history = useHistory ? CurrentHistory : new History(string.Empty);
             return await SendGenerationRequestInternal(promt, history, updateHistory && useHistory);
         }
 
@@ -108,31 +125,42 @@ namespace MlSDK
         {
             using (HttpContent content = new StringContent(json, Encoding.UTF8, "application/json"))
             {
-                var response = await _client.PostAsync(_url, content);
-
-                if (!response.IsSuccessStatusCode)
+                try
                 {
-                    return new GenerationResult(false, string.Empty, response.ReasonPhrase);
+                    var response = await _client.PostAsync(_url, content);
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        var errorMessage = $"{response.StatusCode}: {response.ReasonPhrase}\r\n";
+                        return new GenerationResult(false, string.Empty, errorMessage);
+                    }
+
+                    var jsonTask = response.Content.ReadAsStringAsync();
+                    JObject result = JObject.Parse(jsonTask.Result);
+
+                    response.Dispose();
+
+                    var choices = result["choices"];
+                    var message = choices[0]["message"];
+
+                    var parsedResult = message["content"].ToString();
+
+                    var formattedResult = System.Net.WebUtility.HtmlDecode(parsedResult);
+
+                    if (string.IsNullOrEmpty(formattedResult))
+                    {
+                        return new GenerationResult(false, string.Empty, "Empty response");
+                    }
+
+                    return new GenerationResult(true, formattedResult, string.Empty);
                 }
-
-                var jsonTask = response.Content.ReadAsStringAsync();
-                JObject result = JObject.Parse(jsonTask.Result);
-
-                response.Dispose();
-
-                var choices = result["choices"];
-                var message = choices[0]["message"];
-
-                var parsedResult = message["content"].ToString();
-
-                var formattedResult = System.Net.WebUtility.HtmlDecode(parsedResult);
-
-                if (string.IsNullOrEmpty(formattedResult))
+                catch (HttpRequestException e)
                 {
-                    return new GenerationResult(false, string.Empty, "Empty response");
+                    if(e.InnerException != null) 
+                        return new GenerationResult(false, string.Empty, e.InnerException.Message);
+                    
+                    return new GenerationResult(false, string.Empty, e.Message);
                 }
-
-                return new GenerationResult(true, formattedResult, string.Empty);
             }
         }
     }

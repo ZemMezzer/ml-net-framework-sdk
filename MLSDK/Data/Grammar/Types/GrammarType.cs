@@ -17,11 +17,22 @@ public class GrammarType
     /// Generates GBNF style grammar
     /// </summary>
     /// <returns></returns>
-    internal virtual string GenerateType()
+    internal virtual string GenerateGBNFType()
     {
-        string declaration = $"{Name}Dec {AssignmentOperator} {Declaration}";
-        string type = $"{Name} {AssignmentOperator}  \"\\\"\" {Name}Dec \"\\\"\"";
+        var declaration = $"{Name}Dec {AssignmentOperator} {Declaration}";
+        var type = $"{Name} {AssignmentOperator}  \"\\\"\" {Name}Dec \"\\\"\"";
+        
         return $"{type}\r\n{declaration}\r\n";
+    }
+
+    internal virtual object GenerateJsonSchemaType()
+    {
+        var result = new Dictionary<string, object>()
+        {
+            {Name, new{type = "string"}}
+        };
+
+        return result;
     }
 
     public override int GetHashCode()

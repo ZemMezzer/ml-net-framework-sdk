@@ -6,7 +6,7 @@ public class GrammarObject : GrammarValue
 {
     private readonly List<GrammarValue> _values = new();
     
-    public GrammarObject(string name) : base(name, null) {}
+    public GrammarObject(string name) : base(name, GrammarRequirement.Required, null) {}
 
     public void Add(GrammarValue value)
     {
@@ -18,7 +18,7 @@ public class GrammarObject : GrammarValue
         }
     }
     
-    internal override string Generate()
+    internal override string GenerateGBNF()
     {
         var values = string.Empty;
 
@@ -29,11 +29,11 @@ public class GrammarObject : GrammarValue
             if (!isFirst)
                 values += "\",\" ws ";
             
-            values += value.Generate();
+            values += value.GenerateGBNF();
             isFirst = false;
         }
 
-        var result = "\"{\" " + $"{values}" + " \"}\" \r\n";
+        var result = $" \"{Name}\" ws \":\" ws " + "\"{\" " + $"{values}" + " \"}\" ";
 
         return result;
     }

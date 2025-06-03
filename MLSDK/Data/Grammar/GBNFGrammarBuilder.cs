@@ -1,6 +1,7 @@
 ﻿using MLSDK.Data.Grammar.Objects;
 using MLSDK.Data.Grammar.Types;
 using MLSDK.Data.Grammar.Values;
+using Newtonsoft.Json.Linq;
 
 namespace MLSDK.Data.Grammar;
 
@@ -20,20 +21,14 @@ public class GBNFGrammarBuilder : IGrammarBuilder
 
         foreach (var type in _types)
         {
-            types += type.GenerateType();
+            types += type.GenerateGBNFType();
         }
 
         var parameters = string.Empty;
-
-        var isFirst = true;
         
         foreach (var parameter in _parameters)
         {
-            if (!isFirst)
-                parameters += "\",\" ws ";
-            
-            parameters += parameter.Generate();
-            isFirst = false;
+            parameters += $"{parameter.GenerateGBNF()} ws ";
         }
 
         string result = "\"{\" " + $"{parameters}" + " \"}\" \r\n";

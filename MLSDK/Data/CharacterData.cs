@@ -4,11 +4,9 @@
 public struct CharacterData
 {
     public string Name;
-    public string Context;
 
-    public CharacterData(string name, string context)
+    public CharacterData(string name)
     {
         Name = name;
-        Context = context;
     }
 }

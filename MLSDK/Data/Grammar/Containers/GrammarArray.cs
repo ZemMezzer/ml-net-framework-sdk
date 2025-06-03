@@ -7,7 +7,7 @@ public class GrammarArray : GrammarValue
 {
     private readonly List<GrammarValue> _parameters = new();
     
-    public GrammarArray(string name) : base(name, null) {}
+    public GrammarArray(string name) : base(name, GrammarRequirement.Required, null) {}
 
     public void Add(GrammarValue value)
     {
@@ -19,7 +19,7 @@ public class GrammarArray : GrammarValue
         _parameters.Add(value);
     }
     
-    internal override string Generate()
+    internal override string GenerateGBNF()
     {
         var isFirst = true;
 
@@ -30,7 +30,7 @@ public class GrammarArray : GrammarValue
             if (!isFirst)
                 result += "\",\" ws ";
 
-            result += parameter.Generate();
+            result += parameter.GenerateGBNF();
             
             isFirst = false;
         }

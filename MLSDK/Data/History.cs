@@ -29,14 +29,9 @@ namespace MLSDK.Data
 
         public IReadOnlyList<HistoryMessage> Messages => _messages;
 
-        public History(string innerMessage = "", string context = "")
+        public History(string innerMessage = "")
         {
             _messages = new List<HistoryMessage>();
-
-            if (!string.IsNullOrEmpty(context))
-            {
-                _messages.Add(new HistoryMessage(SYSTEM_ROLE, context));
-            }
 
             if (!string.IsNullOrEmpty(innerMessage))
             {
@@ -97,6 +92,17 @@ namespace MLSDK.Data
             for (int i = _messages.Count - 1; i >= 0; i--)
             {
                 if (_messages[i].Role == USER_ROLE)
+                    return _messages[i];
+            }
+
+            return default;
+        }
+
+        public HistoryMessage GetLastResponse()
+        {
+            for (int i = _messages.Count - 1; i >= 0; i--)
+            {
+                if (_messages[i].Role == AI_ROLE)
                     return _messages[i];
             }
 
