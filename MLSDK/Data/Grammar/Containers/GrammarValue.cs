@@ -21,11 +21,14 @@ public class GrammarValue
         RequirementChar = requirement.ToGrammarChar();
     }
 
-    protected void AddType(GrammarType type) => _types.Add(type);
+    protected void AddType(GrammarType type)
+    {
+        _types.Add(type);
+    }
 
     internal virtual string GenerateGBNF()
     {
-        return $"(\"{Name}\" ws \":\" ws {Types.First().Name}\",\"){RequirementChar}";
+        return $"(\"{Name}\" ws \":\" ws {Types.First().Name}){RequirementChar}";
     }
 
     internal virtual object GenerateJsonObject()

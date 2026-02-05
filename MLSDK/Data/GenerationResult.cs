@@ -1,15 +1,15 @@
 ﻿namespace MlSDK.Data
 {
-    public struct GenerationResult
+    public struct GenerationResult<T>
     {
         public readonly bool IsGenerationSucceed;
-        public readonly string ResultMessage;
+        public readonly T Result;
         public readonly string ErrorMessage;
 
-        public GenerationResult(bool isGenerationSucceed, string resultMessage, string errorMessage)
+        public GenerationResult(bool isGenerationSucceed, T result, string errorMessage)
         {
             IsGenerationSucceed = isGenerationSucceed;
-            ResultMessage = resultMessage;
+            Result = result;
             ErrorMessage = errorMessage;
         }
     }

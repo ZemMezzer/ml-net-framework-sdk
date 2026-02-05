@@ -26,12 +26,18 @@ namespace MLSDK.Data
         private const string USER_ROLE = "user";
         
         [JsonProperty("messages")] private List<HistoryMessage> _messages;
+        private Dictionary<string, string> _historyBatches;
+        
+        [JsonIgnore]
+        public IReadOnlyDictionary<string, string> HistoryBatches => _historyBatches;
 
+        [JsonIgnore]
         public IReadOnlyList<HistoryMessage> Messages => _messages;
 
         public History(string innerMessage = "")
         {
             _messages = new List<HistoryMessage>();
+            _historyBatches = new Dictionary<string, string>();
 
             if (!string.IsNullOrEmpty(innerMessage))
             {
@@ -42,6 +48,11 @@ namespace MLSDK.Data
         public void AddPromt(string message)
         {
             _messages.Add(new HistoryMessage(USER_ROLE, message));
+        }
+
+        public void AddSystemMessage(string message)
+        {
+            _messages.Add(new HistoryMessage(SYSTEM_ROLE, message));
         }
 
         public void SetModelMessage(string message)
@@ -79,6 +90,11 @@ namespace MLSDK.Data
             }
         }
 
+        public void ClearBatches()
+        {
+            _historyBatches.Clear();
+        }
+
         public bool IsLastMessageResponseOnPromt()
         {
             if (_messages.Count <= 1)
@@ -89,7 +105,7 @@ namespace MLSDK.Data
         
         public HistoryMessage GetLastPromt()
         {
-            for (int i = _messages.Count - 1; i >= 0; i--)
+            for (var i = _messages.Count - 1; i >= 0; i--)
             {
                 if (_messages[i].Role == USER_ROLE)
                     return _messages[i];
@@ -100,7 +116,7 @@ namespace MLSDK.Data
 
         public HistoryMessage GetLastResponse()
         {
-            for (int i = _messages.Count - 1; i >= 0; i--)
+            for (var i = _messages.Count - 1; i >= 0; i--)
             {
                 if (_messages[i].Role == AI_ROLE)
                     return _messages[i];
@@ -119,7 +135,7 @@ namespace MLSDK.Data
         
         private void RemoveLastRoleMessage(string role)
         {
-            for (int i = _messages.Count - 1; i >= 0; i--)
+            for (var i = _messages.Count - 1; i >= 0; i--)
             {
                 if (_messages[i].Role == role)
                 {
@@ -128,10 +144,28 @@ namespace MLSDK.Data
                 }
             }
         }
+        
+        private int GetMessagesCountFromRole(string role)
+        {
+            var count = 0;
+            
+            foreach (var message in _messages)
+            {
+                if (message.Role == role)
+                {
+                    count++;
+                }
+            }
+            
+            return count;
+        }
 
         public void RemoveLastCharacterMessage() => RemoveLastRoleMessage(AI_ROLE);
         public void RemoveLastUserMessage() => RemoveLastRoleMessage(USER_ROLE);
 
+        public int GetCharacterMessageCount() => GetMessagesCountFromRole(AI_ROLE);
+        public int GetUserMessageCount() => GetMessagesCountFromRole(USER_ROLE);
+ 
         public History GetCopy()
         {
             var history = new History();
@@ -139,6 +173,11 @@ namespace MLSDK.Data
             foreach (var message in _messages)
             {
                 history._messages.Add(message);
+            }
+
+            foreach (var batch in _historyBatches)
+            {
+                history._historyBatches.Add(batch.Key, batch.Value);
             }
 
             return history;
@@ -150,6 +189,39 @@ namespace MLSDK.Data
                 return true;
 
             return _messages.Count <= 1 && _messages[0].Role == SYSTEM_ROLE && ignoreContext;
+        }
+
+        public string GetBatch(string key)
+        {
+            return _historyBatches.TryGetValue(key, out var batch) ? batch : string.Empty;
+        }
+
+        public void SetBatch(string key, string batch)
+        {
+            _historyBatches[key] = batch;
+        }
+
+        public void RemoveBatch(string key)
+        {
+            if (_historyBatches.ContainsKey(key))
+            {
+                _historyBatches.Remove(key);
+            }
+        }
+
+        public string GetSummary(bool ignoreSystem = true)
+        {
+            var summary = string.Empty;
+
+            foreach (var message in _messages)
+            {
+                if(message.Role == SYSTEM_ROLE && ignoreSystem)
+                    continue;
+                
+                summary += $"{message.Role}: {message.Content}\n";
+            }
+            
+            return summary;
         }
     }
 }
