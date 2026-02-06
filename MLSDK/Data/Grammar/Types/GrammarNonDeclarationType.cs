@@ -1,11 +1,12 @@
-﻿namespace MLSDK.Data.Grammar.Types;
-
-public class GrammarNonDeclarationType : GrammarType
+﻿namespace MLSDK.Data.Grammar.Types
 {
-    public GrammarNonDeclarationType(string name, string value) : base(name, value) { }
-    
-    internal override string GenerateGBNFType()
+    public class GrammarNonDeclarationType : GrammarType
     {
-        return $"{Name} {AssignmentOperator} {Declaration}\r\n";
+        public GrammarNonDeclarationType(string name, string value) : base(name, value) { }
+    
+        internal override string GenerateGBNFType()
+        {
+            return $"{Name} {AssignmentOperator} {Declaration}\r\n";
+        }
     }
 }

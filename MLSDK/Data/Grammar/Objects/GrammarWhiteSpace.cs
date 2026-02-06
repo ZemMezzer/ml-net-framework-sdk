@@ -1,9 +1,11 @@
 ﻿using MLSDK.Data.Grammar.Types;
 
-namespace MLSDK.Data.Grammar.Objects;
-
-internal class GrammarWhiteSpace : GrammarNonDeclarationType
+namespace MLSDK.Data.Grammar.Objects
 {
-    private const string WhiteSpace = "\" \"";
-    public GrammarWhiteSpace() : base("ws", WhiteSpace) {}
+    internal class GrammarWhiteSpace : GrammarNonDeclarationType
+    {
+        private const string WhiteSpace = "\" \"";
+        public GrammarWhiteSpace() : base("ws", WhiteSpace) {}
+    }
 }
+

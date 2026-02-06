@@ -1,10 +1,11 @@
-﻿namespace MLSDK.RAG.Data;
-
-public enum MemoryCategory
+﻿namespace RAG.Data
 {
-    Fact,
-    Decision,
-    Preference,
-    Task,
-    Note
+    public enum MemoryCategory
+    {
+        Fact,
+        Decision,
+        Preference,
+        Task,
+        Note
+    }
 }

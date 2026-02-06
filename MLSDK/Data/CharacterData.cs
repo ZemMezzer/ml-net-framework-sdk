@@ -1,12 +1,13 @@
-﻿namespace MLSDK.Data;
-
-[Serializable]
-public struct CharacterData
+﻿namespace MLSDK.Data
 {
-    public string Name;
-
-    public CharacterData(string name)
+    [Serializable]
+    public struct CharacterData
     {
-        Name = name;
+        public string Name;
+
+        public CharacterData(string name)
+        {
+            Name = name;
+        }
     }
 }

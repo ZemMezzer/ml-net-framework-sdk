@@ -1,42 +1,43 @@
-﻿namespace MLSDK.Data.Grammar.Types;
-
-public class GrammarType
+﻿namespace MLSDK.Data.Grammar.Types
 {
-    protected const string AssignmentOperator = "::=";
+    public class GrammarType
+    {
+        protected const string AssignmentOperator = "::=";
     
-    public readonly string Name;
-    public string Declaration { get; protected set; }
+        public readonly string Name;
+        public string Declaration { get; protected set; }
 
-    public GrammarType(string name, string value)
-    {
-        Name = name;
-        Declaration = $"{value}";
-    }
-
-    /// <summary>
-    /// Generates GBNF style grammar
-    /// </summary>
-    /// <returns></returns>
-    internal virtual string GenerateGBNFType()
-    {
-        var declaration = $"{Name}Dec {AssignmentOperator} {Declaration}";
-        var type = $"{Name} {AssignmentOperator}  \"\\\"\" {Name}Dec \"\\\"\"";
-        
-        return $"{type}\r\n{declaration}\r\n";
-    }
-
-    internal virtual object GenerateJsonSchemaType()
-    {
-        var result = new Dictionary<string, object>()
+        public GrammarType(string name, string value)
         {
-            {Name, new{type = "string"}}
-        };
+            Name = name;
+            Declaration = $"{value}";
+        }
 
-        return result;
-    }
+        /// <summary>
+        /// Generates GBNF style grammar
+        /// </summary>
+        /// <returns></returns>
+        internal virtual string GenerateGBNFType()
+        {
+            var declaration = $"{Name}Dec {AssignmentOperator} {Declaration}";
+            var type = $"{Name} {AssignmentOperator}  \"\\\"\" {Name}Dec \"\\\"\"";
+        
+            return $"{type}\r\n{declaration}\r\n";
+        }
 
-    public override int GetHashCode()
-    {
-        return Name.GetHashCode();
+        internal virtual object GenerateJsonSchemaType()
+        {
+            var result = new Dictionary<string, object>()
+            {
+                {Name, new{type = "string"}}
+            };
+
+            return result;
+        }
+
+        public override int GetHashCode()
+        {
+            return Name.GetHashCode();
+        }
     }
 }

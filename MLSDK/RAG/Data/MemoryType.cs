@@ -1,4 +1,4 @@
-﻿namespace MLSDK.RAG.Data
+﻿namespace RAG.Data
 {
     public enum MemoryType
     {

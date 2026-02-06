@@ -1,21 +1,22 @@
 ﻿using MLSDK.Data.Grammar.Types;
 
-namespace MLSDK.Data.Grammar.Objects;
-
-public class GrammarString : GrammarNonDeclarationType, IEquatable<GrammarString>
+namespace MLSDK.Data.Grammar.Objects
 {
-    private const string String = "\"\\\"\" ([a-zA-Z0-9.,:;'_ ])* \"\\\"\"";
-
-    public GrammarString() : base("string", String) { }
-
-    public override bool Equals(object? obj)
+    public class GrammarString : GrammarNonDeclarationType, IEquatable<GrammarString>
     {
-        return obj is GrammarString;
-    }
+        private const string String = "\"\\\"\" ([a-zA-Z0-9.,:;'_ ])* \"\\\"\"";
 
-    public override int GetHashCode()
-    {
-        return String.GetHashCode();
+        public GrammarString() : base("string", String) { }
+
+        public override bool Equals(object? obj)
+        {
+            return obj is GrammarString;
+        }
+
+        public override int GetHashCode()
+        {
+            return String.GetHashCode();
+        }
+        public bool Equals(GrammarString? other) => true;
     }
-    public bool Equals(GrammarString? other) => true;
 }

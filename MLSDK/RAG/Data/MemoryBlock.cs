@@ -1,4 +1,6 @@
-﻿namespace MLSDK.RAG.Data
+﻿using System;
+
+namespace RAG.Data
 {
     [Serializable]
     public class MemoryBlock

@@ -1,12 +1,13 @@
-﻿namespace MLSDK.Data;
-
-public enum GenerationStatus
+﻿namespace MLSDK.Data
 {
-    UserInvalid,
-    AccessDenied,
-    Success,
-    Failed,
-    EmptyPromt,
-    InvalidRequest,
-    UnknownError
+    public enum GenerationStatus
+    {
+        UserInvalid,
+        AccessDenied,
+        Success,
+        Failed,
+        EmptyPromt,
+        InvalidRequest,
+        UnknownError
+    }
 }

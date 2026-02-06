@@ -1,40 +1,39 @@
-﻿using MLSDK.Data.Grammar.Values;
-
-namespace MLSDK.Data.Grammar.Containers;
-
-public class GrammarObject : GrammarValue
+﻿namespace MLSDK.Data.Grammar.Containers
 {
-    private readonly List<GrammarValue> _values = new();
-    
-    public GrammarObject(string name) : base(name, GrammarRequirement.Required, null) {}
-
-    public void Add(GrammarValue value)
+    public class GrammarObject : GrammarValue
     {
-        _values.Add(value);
+        private readonly List<GrammarValue> _values = new();
+    
+        public GrammarObject(string name) : base(name, GrammarRequirement.Required, null) {}
 
-        foreach (var type in value.Types)
+        public void Add(GrammarValue value)
         {
-            AddType(type);
-        }
-    }
-    
-    internal override string GenerateGBNF()
-    {
-        var values = string.Empty;
+            _values.Add(value);
 
-        var isFirst = true;
+            foreach (var type in value.Types)
+            {
+                AddType(type);
+            }
+        }
+    
+        internal override string GenerateGBNF()
+        {
+            var values = string.Empty;
+
+            var isFirst = true;
         
-        foreach (var value in _values)
-        {
-            if (!isFirst)
-                values += "\",\" ws ";
+            foreach (var value in _values)
+            {
+                if (!isFirst)
+                    values += "\",\" ws ";
             
-            values += value.GenerateGBNF();
-            isFirst = false;
+                values += value.GenerateGBNF();
+                isFirst = false;
+            }
+
+            var result = $" \"{Name}\" ws \":\" ws " + "\"{\" " + $"{values}" + " \"}\" ";
+
+            return result;
         }
-
-        var result = $" \"{Name}\" ws \":\" ws " + "\"{\" " + $"{values}" + " \"}\" ";
-
-        return result;
     }
 }

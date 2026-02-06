@@ -1,9 +1,10 @@
-﻿namespace MLSDK.RAG.Data;
-
-public enum MemoryImportance
+﻿namespace RAG.Data
 {
-    VeryImportant,
-    Important,
-    MediumImportant,
-    NotImportant,
+    public enum MemoryImportance
+    {
+        VeryImportant,
+        Important,
+        MediumImportant,
+        NotImportant,
+    }
 }

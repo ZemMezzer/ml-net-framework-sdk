@@ -1,23 +1,25 @@
-﻿using System.Text;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
-using Microsoft.ML.Tokenizers;
-using MLSDK.RAG.Data;
 using Newtonsoft.Json;
 
-namespace MlSDK.RAG
+namespace RAG
 {
-    public class MlDatabase : IDisposable
+    public class VectorDatabase<T> : IDisposable
     {
         [Serializable]
-        private class DatabaseMemoryBlock
+        private class DatabaseBlock
         {
-            public MemoryBlock MemoryBlock;
+            public T Block;
             public float[] Embed;
 
-            public DatabaseMemoryBlock(MemoryBlock memoryBlock, float[] embed)
+            public DatabaseBlock(T block, float[] embed)
             {
-                MemoryBlock = memoryBlock;
+                Block = block;
                 Embed = embed;
             }
         }
@@ -26,14 +28,14 @@ namespace MlSDK.RAG
         private readonly BertTokenizer _tokenizer;
         private readonly int _maxLen;
         
-        private readonly List<DatabaseMemoryBlock> _memoryBlocks = new();
+        private readonly List<DatabaseBlock> _blocks = new List<DatabaseBlock>();
 
-        public MlDatabase(byte[] embeddedModel, byte[] vocab, int maxLength = 256)
+        public VectorDatabase(byte[] embeddedModel, byte[] vocab, int maxLength = 256)
         {
             using var stream = new MemoryStream(vocab);
 
             _session = new InferenceSession(embeddedModel);
-            _tokenizer = BertTokenizer.Create(stream, new BertOptions() { LowerCaseBeforeTokenization = true });
+            _tokenizer = new BertTokenizer(stream);
 
             _maxLen = maxLength;
         }
@@ -43,12 +45,12 @@ namespace MlSDK.RAG
             try
             {
                 var json = Encoding.UTF8.GetString(bytes);
-                var blocks = JsonConvert.DeserializeObject<DatabaseMemoryBlock[]>(json);
+                var blocks = JsonConvert.DeserializeObject<DatabaseBlock[]>(json);
                 
                 if (blocks == null) 
                     return;
-                _memoryBlocks.Clear();
-                _memoryBlocks.AddRange(blocks);
+                _blocks.Clear();
+                _blocks.AddRange(blocks);
             }
             catch (Exception e)
             {
@@ -59,7 +61,7 @@ namespace MlSDK.RAG
 
         public byte[] Save()
         {
-            return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(_memoryBlocks));
+            return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(_blocks));
         }
         
         public float[] Embed(string text)
@@ -138,8 +140,19 @@ namespace MlSDK.RAG
 
             foreach (var r in results)
             {
-                if (r.Value is not DenseTensor<float> { Rank: 2, Dimensions.Length: 2 } dt ||
-                    dt.Dimensions[0] != 1) continue;
+                var dt = r.Value as DenseTensor<float>;
+                if (dt == null)
+                    continue;
+
+                if (dt.Rank != 2)
+                    continue;
+
+                if (dt.Dimensions == null || dt.Dimensions.Length != 2)
+                    continue;
+
+                if (dt.Dimensions[0] != 1)
+                    continue;
+                
                 embeddingTensor = dt;
                 break;
             }
@@ -152,24 +165,24 @@ namespace MlSDK.RAG
             return embeddingTensor.ToArray();
         }
 
-        public void Insert(MemoryBlock block)
+        public void Insert(string text, T value)
         {
-            var e = Embed(block.Value);
+            var e = Embed(text);
             L2Normalize(e);
-            _memoryBlocks.Add(new DatabaseMemoryBlock(block, e));
+            _blocks.Add(new DatabaseBlock(value, e));
         }
 
-        public IReadOnlyList<MemoryBlock> Search(string query, float minScore = 0.35f, int topK = 5)
+        public IReadOnlyList<(T value, float score)> Search(string query, float minScore = 0.35f, int topK = 5)
         {
             var q = Embed(query);
             L2Normalize(q);
 
-            return _memoryBlocks
+            return _blocks
                 .Select(b => (Block: b, Score: Dot(q, b.Embed)))
                 .Where(x => x.Score >= minScore)
                 .OrderByDescending(x => x.Score)
                 .Take(topK)
-                .Select(x => x.Block.MemoryBlock)
+                .Select(x => (x.Block.Block, x.Score))
                 .ToList();
         }
 

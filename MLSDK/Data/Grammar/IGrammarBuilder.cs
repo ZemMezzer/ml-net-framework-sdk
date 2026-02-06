@@ -1,9 +1,10 @@
-﻿using MLSDK.Data.Grammar.Values;
+﻿using MLSDK.Data.Grammar.Containers;
 
-namespace MLSDK.Data.Grammar;
-
-public interface IGrammarBuilder
+namespace MLSDK.Data.Grammar
 {
-    public string Build();
-    public void AddValue(GrammarValue value);
+    public interface IGrammarBuilder
+    {
+        public string Build();
+        public void AddValue(GrammarValue value);
+    }
 }
