@@ -31,8 +31,6 @@ namespace RAG
         private const string MemoryValueKey = "memoryMessage";
         private const string MemoryValueDescription = "The actual content of the memory.";
 
-        private const string MemoryKey = "memory";
-
         public MlMemoryGenerationClient(string url, GenerationConfig config, IGrammarBuilder grammarBuilder) : base(url,
             config)
         {
@@ -79,20 +77,16 @@ namespace RAG
             var memoryImportanceEnum = GetEnum<MemoryImportance>(MemoryImportanceKey);
             var memoryCategoryEnum = GetEnum<MemoryCategory>(MemoryCategoryKey);
 
-            var memoryObject = new GrammarObject(MemoryKey);
-
             var memoryType = new GrammarValue(MemoryTypeKey, GrammarRequirement.Required, memoryTypeEnum);
             var memoryImportance =
                 new GrammarValue(MemoryImportanceKey, GrammarRequirement.Required, memoryImportanceEnum);
             var memoryCategory = new GrammarValue(MemoryCategoryKey, GrammarRequirement.Required, memoryCategoryEnum);
             var memoryValue = new GrammarValue(MemoryValueKey, GrammarRequirement.Required, new GrammarString());
 
-            memoryObject.Add(memoryType);
-            memoryObject.Add(memoryImportance);
-            memoryObject.Add(memoryCategory);
-            memoryObject.Add(memoryValue);
-
-            _grammarBuilder.AddValue(memoryObject);
+            _grammarBuilder.AddValue(memoryType);
+            _grammarBuilder.AddValue(memoryImportance);
+            _grammarBuilder.AddValue(memoryCategory);
+            _grammarBuilder.AddValue(memoryValue);
         }
 
         private string AppendProperty<T>(string key, string description, string source) where T : Enum
@@ -140,16 +134,18 @@ namespace RAG
             {
                 var obj = JsonConvert.DeserializeObject<JObject>(generationResult.Result);
 
-                if (!obj.TryGetValue(MemoryKey, out var memory))
+                if (!obj.TryGetValue(MemoryTypeKey, out var memoryTypeRaw) ||
+                    !obj.TryGetValue(MemoryImportanceKey, out var memoryImportanceRaw) ||
+                    !obj.TryGetValue(MemoryCategoryKey, out var memoryCategoryRaw) ||
+                    !obj.TryGetValue(MemoryValueKey, out var memoryValueRaw))
                 {
                     return new GenerationResult<MemoryBlock>(true, MemoryBlock.Empty, generationResult.ErrorMessage);
                 }
 
-                var memoryType = memory[MemoryTypeKey].ToObject<MemoryType>();
-                var memoryImportance = memory[MemoryImportanceKey].ToObject<MemoryImportance>();
-                var memoryCategory = memory[MemoryCategoryKey].ToObject<MemoryCategory>();
-
-                var value = memory[MemoryValueKey].ToString();
+                var memoryType = memoryTypeRaw.ToObject<MemoryType>();
+                var memoryImportance = memoryImportanceRaw.ToObject<MemoryImportance>();
+                var memoryCategory = memoryCategoryRaw.ToObject<MemoryCategory>();
+                var value = memoryValueRaw.ToString();
 
                 var result = new MemoryBlock()
                 {

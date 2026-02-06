@@ -27,7 +27,7 @@ namespace MLSDK.Data.Grammar.Containers
 
         internal virtual string GenerateGBNF()
         {
-            return $"(\"{Name}\" ws \":\" ws {Types.First().Name}){RequirementChar}";
+            return $"(\"{Name}\" ws \":\" ws {Types.First().Name}\",\"){RequirementChar}";
         }
 
         internal virtual object GenerateJsonObject()
