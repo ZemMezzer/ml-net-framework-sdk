@@ -4,7 +4,7 @@ namespace MLSDK.Data.Grammar.Objects
 {
     public class GrammarString : GrammarNonDeclarationType, IEquatable<GrammarString>
     {
-        private const string String = "\"\\\"\" ([a-zA-Z0-9.,:;'_ ])* \"\\\"\"";
+        private const string String = "\"\\\"\" ([A-Za-z0-9 .!?()'/_-]*) [A-Za-z0-9] \"\\\"\"";
 
         public GrammarString() : base("string", String) { }
 
