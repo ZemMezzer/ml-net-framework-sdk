@@ -35,14 +35,18 @@ namespace MLAgentSDK.RAG
         private GrammarEnum GetEnum<T>(string name, bool isRequired) where T : Enum
         {
             var values = Enum.GetValues(typeof(T));
-            var resultValues = new object[values.Length];
+            var resultValues = new List<object>();
 
             for (var i = 0; i < values.Length; i++)
             {
-                resultValues[i] = values.GetValue(i).ToString();
+                var value = values.GetValue(i).ToString();
+                if(value.ToLower() == "none")
+                    continue;
+                
+                resultValues.Add(value);
             }
 
-            return new GrammarEnum(name, isRequired, resultValues);
+            return new GrammarEnum(name, isRequired, resultValues.ToArray());
         }
 
         private string GetEnumResults<T>() where T : Enum
@@ -53,6 +57,10 @@ namespace MLAgentSDK.RAG
 
             for (var i = 0; i < values.Length; i++)
             {
+                var value = values.GetValue(i).ToString();
+                if(value.ToLower() == "none")
+                    continue;
+                
                 if (!isFirst)
                 {
                     result += ", ";

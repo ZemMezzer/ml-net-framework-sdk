@@ -192,7 +192,7 @@ namespace RAG
             L2Normalize(e);
             _blocks.Add(new DatabaseBlock(value, e));
         }
-
+        
         public List<Block> Search(string query, Func<T, bool> predicate = null, float minScore = 0.35f, int topK = 5) => Search(EmbedL2(query), predicate, minScore, topK);
 
         public List<Block> Search(float[] query, Func<T, bool> predicate = null, float minScore = 0.35f, int topK = 5)
@@ -232,6 +232,18 @@ namespace RAG
             }
 
             return _blocksBuffer;
+        }
+
+        public bool Contains(string text, Func<T,bool> predicate, float duplicateThreshold = 0.93f)
+        {
+            var query = EmbedL2(text);
+            var hits = Search(query, predicate, 0);
+
+            if (hits.Count == 0)
+                return false;
+
+            var best = hits[0];
+            return best.Score >= duplicateThreshold;
         }
  
         private float Dot(float[] a, float[] b)
